@@ -8,7 +8,11 @@ HOST = '127.0.0.1'
 PORT = 65432
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((HOST, PORT))
+try:
+    client.connect((HOST, PORT))
+except Exception as e:
+    print(f"Unable to connect to server: {e}")
+    exit(1)
 
 class ChatApp:
     def __init__(self):
