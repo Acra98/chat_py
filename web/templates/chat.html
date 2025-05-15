@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+
+    <!-- Emoji Mart CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-mart@3.0.0/dist/browser.css">
+
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+
+    <!-- Emoji Mart JS -->
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@3.0.0/dist/browser.js"></script>
+
+    <!-- Your own stylesheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <h2>Welcome, <span class="username" id="current-user">{{ username }}</span></h2>
+        <div id="chat"></div>
+        <div class="input-area">
+            <input id="input" autocomplete="off" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+            <button onclick="toggleEmojiPicker()">😊</button>
+        </div>
+        <div id="emoji-picker" style="display: none;"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        const username = "{{ username }}";
+        const usernameColor = "#" + intToRGB(hashCode(username));
+        document.getElementById("current-user").style.color = usernameColor;
+
+        socket.on('message', function(msg) {
+            const chat = document.getElementById('chat');
+            const p = document.createElement('p');
+            p.innerHTML = formatMessage(msg);
+            chat.appendChild(p);
+            chat.scrollTop = chat.scrollHeight;
+        });
+
+        function sendMessage() {
+            const input = document.getElementById("input");
+            if (input.value.trim()) {
+                socket.send(username + ": " + input.value); // Send the message to the server
+                input.value = ""; // Clear the input field after sending
+            }
+        }
+
+        /**
+         * Formats a chat message by coloring the username and appending the message text.
+         * 
+         * @param {string} msg - The message string in the format "username: message".
+         * @returns {string} - The formatted HTML string with the username colored and message text.
+         */
+        function formatMessage(msg) {
+            const parts = msg.split(": ");
+            if (parts.length < 2) return msg;
+            const name = parts[0];
+            const text = parts.slice(1).join(": ");
+            const nameColor = "#" + intToRGB(hashCode(name));
+            return "<strong style='color:" + nameColor + "'>" + name + "</strong>: " + text;
+        }
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById("emoji-picker");
+            picker.style.display = picker.style.display === "none" ? "block" : "none";
+        }
+
+        // Initialize the emoji picker
+        const picker = new EmojiMart.Picker({
+            onEmojiSelect: emoji => {
+                const input = document.getElementById("input");
+                input.value += emoji.native; // Add the selected emoji to the input field
+                input.focus();
+            },
+            theme: "light", // Light theme for the emoji picker
+            locale: "en",    // Language setting
+        });
+
+        // Render the picker inside the emoji-picker div
+        picker.render(document.getElementById("emoji-picker"));
+
+        // Handle the 'Enter' key press to send the message
+        document.getElementById("input").addEventListener("keypress", function(e) {
+            // Check if the key pressed is 'Enter' (keyCode 13)
+            if (e.key === "Enter") {
+                e.preventDefault(); // Prevent default behavior (form submission)
+                sendMessage(); // Send the message
+            }
+        });
+
+        // Hash function to generate a unique color for each username
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return hash;
+        }
+
+        // Convert hash to RGB format for user color
+        function intToRGB(i){
+            const c = (i & 0x00FFFFFF)
+                .toString(16)
+                .toUpperCase();
+            return "00000".substring(0, 6 - c.length) + c;
+        }
+    </script>
+</body>
+</html>
